@@ -10,6 +10,9 @@ const userForm = document.getElementById("userForm");
 const transactionsTable = document.getElementById("transactionsTable");
 const prevButton = document.getElementById("prevButton");
 const nextButton = document.getElementById("nextButton");
+const montant = parseFloat(
+  document.getElementById("transactionAmount").value
+);
 
 let currentUserIndex = 0;
 let users = [];
@@ -130,36 +133,54 @@ function setupPopups() {
 function validateForm(form) {
   let isValid = true;
   const fields = form.querySelectorAll("input, select, textarea");
+  const transactionType = document.getElementById("transactionType"); // Assurez-vous que cet élément existe
+  const transactionAmount = document.getElementById("transactionAmount"); // Assurez-vous que cet élément existe
+  const montant = parseFloat(transactionAmount.value); // Conversion en nombre
+  const currentBalance = users[currentUserIndex]?.montant || 0; // Récupération du solde actuel
 
   fields.forEach((field) => {
     const errorElement = field.nextElementSibling;
-  
+
+    // Vérification des champs vides
     if (!field.value.trim()) {
-      // Vérifier le nom ou un attribut spécifique du champ
       if (field.name === "date") {
-        errorElement.textContent = "La date  est obligatoire.";
+        errorElement.textContent = "La date est obligatoire.";
       } else if (field.name === "numero") {
-        errorElement.textContent = "Le numero est positif.";
+        errorElement.textContent = "Le numéro est obligatoire.";
       } else if (field.name === "montant") {
         errorElement.textContent = "Le montant est obligatoire.";
-        const amount = parseFloat(transactionAmount.value); // Conversion en nombre
-       const currentBalance = users[currentUserIndex].montant;
-      // Vérification pour les retraits ou transferts
-      if ((transactionType.value === "retrait" || transactionType.value === "transfert") && amount > currentBalance) {
-        showError(transactionAmount, "Le montant à retirer dépasse le solde disponible.");
-        return; // Empêche la soumission si la condition n'est pas remplie}
       } else {
         errorElement.textContent = "Ce champ est obligatoire.";
       }
       isValid = false;
+      return; // Arrête cette itération
     } else {
       errorElement.textContent = ""; // Réinitialiser les erreurs si le champ est valide
     }
   });
-  
+
+  // Validation spécifique pour le montant
+  if (isNaN(montant) || montant <= 0) {
+    document.getElementById("amountError").textContent =
+      "Le montant doit être supérieur à 0.";
+    document.getElementById("amountError").classList.add("text-red-500");
+    isValid = false;
+  } else if (
+    (transactionType.value === "retrait" || transactionType.value === "transfert") &&
+    montant > currentBalance
+  ) {
+    document.getElementById("amountError").textContent =
+      "Le montant dépasse le solde disponible.";
+    document.getElementById("amountError").classList.add("text-red-500");
+    isValid = false;
+  } else {
+    document.getElementById("amountError").textContent = ""; // Réinitialiser l'erreur du montant
+  }
 
   return isValid;
 }
+
+
 
 // Ajouter une transaction et enregistrer dans localStorage
 transactionForm.addEventListener("submit", (event) => {
@@ -248,10 +269,32 @@ document.getElementById("userForm").addEventListener("submit", function (e) {
   } else {
     montantError.textContent = ""; // Pas d'erreur
   }
-
+  if (!isValid) {
+    return;
+  }
+  
+  const newTransaction = {
+    date: date,
+    numero: numero,
+    type: type,
+    montant: type === "retrait" || type === "transfert" ? -montant : montant,
+  };
+  
+  user.transactions.push(newTransaction);
+  user.montant += newTransaction.montant;
+  
+  saveUserDataToLocalStorage();
+  closeTransactionPopup();
+  showNotification(
+    `la transaction de ${newTransaction.type} a reussit`,
+    "success"
+  );
+  displayUserData();
+  
   // Si tous les champs sont valides
   if (isValid) {
     alert("Formulaire valide ! Données envoyées.");
     // Vous pouvez soumettre le formulaire ou effectuer une action
   }
 });
+
