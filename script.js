@@ -142,6 +142,12 @@ function validateForm(form) {
         errorElement.textContent = "Le numero est positif.";
       } else if (field.name === "montant") {
         errorElement.textContent = "Le montant est obligatoire.";
+        const amount = parseFloat(transactionAmount.value); // Conversion en nombre
+       const currentBalance = users[currentUserIndex].montant;
+      // Vérification pour les retraits ou transferts
+      if ((transactionType.value === "retrait" || transactionType.value === "transfert") && amount > currentBalance) {
+        showError(transactionAmount, "Le montant à retirer dépasse le solde disponible.");
+        return; // Empêche la soumission si la condition n'est pas remplie}
       } else {
         errorElement.textContent = "Ce champ est obligatoire.";
       }
